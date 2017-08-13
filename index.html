@@ -233,6 +233,14 @@
                     allStore.myPlane.y = e.touches[0].pageY - 25;
 
                 });
+
+                window.addEventListener('keydown', function(e) {
+                    if (e.keyCode === 65 || e.keyCode === 37) {
+                        allStore.myPlane.x -= allStore.myPlane.speed;
+                    } else if (e.keyCode === 68 || e.keyCode === 39) {
+                        allStore.myPlane.x += allStore.myPlane.speed;
+                    }
+                });
             }
 
             //创建敌机
