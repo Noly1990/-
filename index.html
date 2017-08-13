@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>飞机大战</title>
+    <style>
+        .canvas {
+            border: 1px solid black;
+            background: url('img/backimg.png');
+            background-size: cover;
+        }
+        
+        button {
+            user-select: none;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas class="canvas" id="canvas" width="360px" height="450px"></canvas>
+    <button id="stop">停火</button>
+    <button id="left">左</button>
+    <button id="right">右</button>
+    <p id="score"></p>
+    <script>
+        //自己飞机对象
+        function MyPlane(src, x, y) {
+            this.src = src;
+            this.img = new Image();
+            this.img.src = src;
+            this.x = x;
+            this.y = y;
+            this.speed = 20;
+            this.bulletSigh = null;
+            this.fire = false;
+            this.bulletStop = function() {
+                this.fire = false;
+                window.clearInterval(this.bulletSigh);
+            }
+            this.creatBullet = function(allStore) {
+                this.fire = true;
+                this.bulletSigh = window.setInterval(function() {
+                    var bullet = new Bullet('img/bullet1.png', this.x + 22, this.y);
+                    allStore.bullets.push(bullet);
+                }.bind(this), 300);
+            };
+            this.moveLeft = function() {
+                this.x -= this.speed;
+            };
+            this.moveRight = function() {
+                this.x += this.speed;
+            }
+
+        }
+
+        //敌军飞机对象
+        function FoePlane(src, x, y, index) {
+            this.src = src;
+            this.img = new Image();
+            this.img.src = src;
+            this.x = x;
+            this.y = y;
+            this.speed = 5;
+            this.index = index;
+
+            this.score = false;
+
+            this.inContent = true;
+            this.checkOut = function() {
+                if (this.y > 455) {
+                    this.inContent = false;
+                }
+            }
+
+            this.alive = true;
+
+
+            this.going = function() {
+                this.y += this.speed;
+            }
+        }
+        //子弹对象
+        function Bullet(src, x, y) {
+            this.src = src;
+            this.img = new Image();
+            this.img.src = src;
+            this.x = x;
+            this.y = y;
+            this.speed = 7;
+            this.index = 0;
+            this.inContent = true;
+            this.checkOut = function() {
+                if (this.y < -5) {
+                    this.inContent = false;
+                }
+            }
+
+            this.alive = true;
+
+            this.shoot = function() {
+                this.y -= this.speed;
+            }
+
+            this.checkHit = function(foePlane) {
+                var width = this.img.width;
+                var height = this.img.height;
+                foePlane.width = foePlane.img.width;
+                foePlane.height = foePlane.img.height;
+
+                function checkOne(x, y) {
+                    if (x > foePlane.x && x < foePlane.x + foePlane.width && y > foePlane.y && y < foePlane.y + foePlane.height) {
+                        return true;
+                    }
+                }
+
+                if ((foePlane.inContent === true) && (checkOne(this.x, this.y) || checkOne(this.x + width, this.y) || checkOne(this.x, this.y + height) || checkOne(this.x + width, this.y + height))) {
+                    log('shooted');
+                    this.inContent = false;
+                    foePlane.img.src = 'img/otherplane-ended.png';
+                    foePlane.score = true;
+                    setTimeout(function() {
+                        foePlane.inContent = false;
+                    }, 300);
+                }
+            }
+        }
+
+        //画布对象
+        function DrawCanvas(id) {
+
+            this.canvas = document.getElementById(id);
+            this.context = canvas.getContext('2d');
+            this.score = document.getElementById('score');
+            //清画布
+            this.clr = function() {
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            };
+
+            //画图片
+            this.drawImgObj = function(imgObj) {
+                this.context.drawImage(imgObj.img, imgObj.x, imgObj.y);
+            }
+
+            this.drawAll = function(allStore) {
+                this.score.innerHTML = '您的分数是：' + allStore.score;
+                this.clr();
+                this.drawImgObj(allStore.myPlane);
+                for (index in allStore.foePlanes) {
+                    this.drawImgObj(allStore.foePlanes[index]);
+                }
+                for (index in allStore.bullets) {
+                    this.drawImgObj(allStore.bullets[index]);
+                }
+            }
+
+        }
+
+        //对象容器
+        function AllStore(myPlane) {
+            this.myPlane = myPlane;
+            this.foePlanes = [];
+            this.bullets = [];
+            this.score = 0;
+        }
+
+        //动作对象
+        function Actions() {
+
+            //会话流程
+            this.drawing = function(allStore, dCanvas) {
+                window.setInterval(function() {
+                    dCanvas.drawAll(allStore);
+                }, 1000 / 60);
+            }
+
+            //运动事件
+            this.moveAndCheck = function(allStore) {
+                window.setInterval(function() {
+
+                    allStore.foePlanes = allStore.foePlanes.filter(function(currentValue) {
+                        return currentValue.inContent === true;
+                    });
+                    allStore.bullets = allStore.bullets.filter(function(currentValue) {
+                        return currentValue.inContent === true;
+                    });
+                    for (index in allStore.bullets) {
+                        allStore.bullets[index].shoot();
+                        allStore.bullets[index].checkOut();
+                        for (temp in allStore.foePlanes) {
+                            allStore.bullets[index].checkHit(allStore.foePlanes[temp]);
+                        }
+                    }
+                    for (index in allStore.foePlanes) {
+                        allStore.foePlanes[index].going();
+                        if (allStore.foePlanes[index].score) {
+                            allStore.score += 10;
+                            allStore.foePlanes[index].score = false;
+                        }
+                    }
+
+
+
+
+                }, 50);
+            }
+
+            //绑定触发事件
+            this.addEvents = function(allStore) {
+                var leftBtn = document.getElementById('left');
+                var rightBtn = document.getElementById('right');
+                var onBtn = document.getElementById('stop');
+                leftBtn.onclick = function() {
+                    allStore.myPlane.moveLeft();
+                }.bind(this);
+                rightBtn.onclick = function() {
+                    allStore.myPlane.moveRight();
+                }.bind(this);
+                onBtn.onclick = function() {
+                    if (allStore.myPlane.fire) {
+                        allStore.myPlane.bulletStop();
+                        onBtn.innerHTML = '开火';
+                    } else {
+                        allStore.myPlane.creatBullet(allStore);
+                        onBtn.innerHTML = '停火';
+                    }
+                }
+
+
+                window.addEventListener('touchstart', function(e) {
+                    allStore.myPlane.x = e.touches[0].pageX - 33;
+                    allStore.myPlane.y = e.touches[0].pageY - 25;
+
+                });
+            }
+
+            //创建敌机
+            this.creatFoe = function(allStore) {
+                window.setInterval(function() {
+                    var temp = random(5, 350);
+                    var foePlane = new FoePlane('img/otherplane.png', temp, -30, 1);
+                    allStore.foePlanes.push(foePlane);
+                }.bind(this), 1000);
+            }
+        }
+
+
+
+        //游戏入口
+        function game_init() {
+            var dCanvas = new DrawCanvas('canvas');
+            var myPlane = new MyPlane('img/myplane.png', 80, 390);
+
+
+
+
+            var allStore = new AllStore(myPlane);
+
+            myPlane.creatBullet(allStore);
+
+
+            var actions = new Actions();
+            actions.creatFoe(allStore);
+            actions.drawing(allStore, dCanvas);
+            actions.moveAndCheck(allStore);
+            actions.addEvents(allStore);
+        }
+
+        game_init();
+
+
+
+
+
+        function log(s) {
+            return console.log(s);
+        }
+
+        function random(x, y) {
+            return Math.floor(Math.random() * (y - x) + x);
+        }
+    </script>
+</body>
+
+</html>
