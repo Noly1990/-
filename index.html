@@ -232,7 +232,12 @@
 
                 window.addEventListener('touchstart', function(e) {
                     allStore.myPlane.x = e.touches[0].pageX - 33;
-                    allStore.myPlane.y = e.touches[0].pageY - 25;
+                    // allStore.myPlane.y = e.touches[0].pageY - 25;
+
+                });
+                window.addEventListener('touchmove', function(e) {
+                    allStore.myPlane.x = e.touches[0].pageX - 33;
+                    // allStore.myPlane.y = e.touches[0].pageY - 25;
 
                 });
 
